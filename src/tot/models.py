@@ -13,24 +13,21 @@ class StopOnNewline(transformers.StoppingCriteria):
         # Check if the generated text contains a newline character
         return '\n' in generated_text
 
-completion_tokens = prompt_tokens = 0
-
 def gpt(prompt, model="llama", temperature=0.7, max_tokens=1000, n=1, stop=None) -> list:
     messages = [{"role": "user", "content": prompt}]
     return chatgpt(messages, model=model, temperature=temperature, max_tokens=max_tokens, n=n, stop=stop)
 
 def chatgpt(messages, model="llama", temperature=0.7, max_tokens=1000, n=1, stop=None) -> list:
-    global completion_tokens, prompt_tokens
     outputs = []
     print("---------------------------------")
     while n > 0:
-        print(n)
+        print("n: ", n)
         cnt = min(n, 20)
         n -= cnt
         res = completions_with_backoff(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens, n=cnt, stop=stop)
         outputs.extend([choice["generated_text"] for choice in res])
         # log completion tokens
-    print(outputs)
+    print("Outputs: ", outputs)
     return outputs
 
 # @backoff.on_exception(backoff.expo, openai.error.OpenAIError)
@@ -58,5 +55,4 @@ def completions_with_backoff(model, messages, temperature, max_tokens, n, stop):
     # return openai.ChatCompletion.create(**kwargs)
 
 def gpt_usage(backend="llama"):
-    global completion_tokens, prompt_tokens
-    return {"completion_tokens": completion_tokens, "prompt_tokens": prompt_tokens, "cost": 0}
+    return {"completion_tokens": 0, "prompt_tokens": 0, "cost": 0}
