@@ -1,16 +1,10 @@
 import os
-import sys
 import json
 import argparse
 
-# Dynamically add the 'src' directory to the Python path
-script_dir = os.path.dirname(os.path.abspath(__file__))
-src_path = os.path.join(script_dir, 'src')
-sys.path.insert(0, src_path)
-
-from tot.tasks import get_task
-from tot.methods.bfs import solve, naive_solve
-from tot.models import gpt_usage
+from src.tot.tasks import get_task
+from src.tot.methods.bfs import solve, naive_solve
+from src.tot.models import gpt_usage
 
 def run(args):
     task = get_task(args.task)
@@ -48,7 +42,7 @@ def run(args):
 
 def parse_args():
     args = argparse.ArgumentParser()
-    args.add_argument('--backend', type=str, choices=['gpt-4', 'gpt-3.5-turbo'], default='gpt-4')
+    args.add_argument('--backend', type=str, choices=['llama'], default='llama')
     args.add_argument('--temperature', type=float, default=0.7)
 
     args.add_argument('--task', type=str, required=True, choices=['game24', 'text', 'crosswords'])
