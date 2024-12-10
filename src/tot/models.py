@@ -26,7 +26,7 @@ def chatgpt(messages, model="llama", temperature=0.7, max_tokens=1000, n=1, stop
         n -= cnt
         res = completions_with_backoff(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens, n=cnt, stop=stop)
         print("res: ", res)
-        outputs.extend(res[0]["generated_text"][0]["content"])
+        outputs.append(res[0]["generated_text"][0]["content"])
         # log completion tokens
     print("Outputs: ", outputs)
     return outputs
