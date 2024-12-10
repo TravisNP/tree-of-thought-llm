@@ -37,7 +37,6 @@ def run(args):
 
     n = args.task_end_index - args.task_start_index
     print(cnt_avg / n, cnt_any / n)
-    print('usage_so_far', gpt_usage(args.backend))
 
 
 def parse_args():
