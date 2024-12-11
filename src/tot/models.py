@@ -4,14 +4,16 @@ import transformers
 import torch
 
 class StopOnNewline(transformers.StoppingCriteria):
-    def __init__(self, tokenizer):
+    def __init__(self, tokenizer, stopping_tokens):
         self.tokenizer = tokenizer
+        self.stopping_tokens = stopping_tokens
 
     def __call__(self, input_ids, scores, **kwargs):
         # Decode the generated tokens to text
         generated_text = self.tokenizer.decode(input_ids[0], skip_special_tokens=True)
         # Check if the generated text contains a newline character
-        return '\n' in generated_text
+        return any(token in generated_text for token in self.stopping_tokens)
+        # return '\n' in generated_text
 
 def gpt(prompt, model="llama", temperature=0.7, max_tokens=1000, n=1, stop=None) -> list:
     messages = [{"role": "user", "content": prompt}]
@@ -44,8 +46,17 @@ def completions_with_backoff(model, messages, temperature, max_tokens, n, stop):
     else:
         raise TypeError("Model type not accepted")
 
-    stop_criteria = StopOnNewline(tokenizer=pipeline.tokenizer)
+    # If no stopping criteria
+    if stop is None:
+        return pipeline(
+        messages,
+        max_new_tokens = max_tokens,
+        temperature = temperature,
+        num_return_sequences = n
+    )
 
+    # If stopping criteria
+    stop_criteria = StopOnNewline(tokenizer=pipeline.tokenizer, stopping_tokens = stop)
     return pipeline(
         messages,
         max_new_tokens = max_tokens,
