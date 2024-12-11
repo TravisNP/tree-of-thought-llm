@@ -36,7 +36,7 @@ def chatgpt(messages, model="llama", temperature=0.7, max_tokens=1000, n=1, stop
 # @backoff.on_exception(backoff.expo, openai.error.OpenAIError)
 def completions_with_backoff(model, messages, temperature, max_tokens, n, stop):
     if model == "llama":
-        model_id = "meta-llama/Meta-Llama-3.1-8B"
+        model_id = "meta-llama/Meta-Llama-3.1-70B-Instruct"
         pipeline = transformers.pipeline(
             "text-generation",
             model=model_id,
