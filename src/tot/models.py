@@ -12,11 +12,12 @@ class StopOnNewline(transformers.StoppingCriteria):
         # Decode the generated tokens to text
         generated_text = self.tokenizer.decode(input_ids[0], skip_special_tokens=True)
 
+        # When running in propose prompt mode, "input" is passed as a stopping condition. Input is seen in the prompt twice.
+        # When the llm tries generating a new input, stop
         if "Input" in self.stopping_tokens:
             return generated_text.count("Input") == 3
 
         return any(token in generated_text for token in self.stopping_tokens)
-        # return '\n' in generated_text
 
 def gpt(prompt, model="llama", temperature=0.7, max_tokens=1000, n=1, stop=None) -> list:
     return chatgpt(prompt, model=model, temperature=temperature, max_tokens=max_tokens, n=n, stop=stop)
