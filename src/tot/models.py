@@ -29,7 +29,7 @@ def chatgpt(messages, model="llama", temperature=0.7, max_tokens=1000, n=1, stop
         print("n: ", n)
         cnt = min(n, 20)
         n -= cnt
-        res = completions_with_backoff(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens, n=cnt, stop=stop)[0]["generated_text"].split("\n")
+        res = completions_with_backoff(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens, n=cnt, stop=stop)[0]["generated_text"].split("\n")[12:-1]
         print("res: ", res)
 
         outputs.extend(res)
