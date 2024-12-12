@@ -12,8 +12,8 @@ class StopOnNewline(transformers.StoppingCriteria):
         # Decode the generated tokens to text
         generated_text = self.tokenizer.decode(input_ids[0], skip_special_tokens=True)
 
-        if "Input" in self.stopping_tokens and generated_text.count("Input") == 3:
-                return True
+        if "Input" in self.stopping_tokens:
+            return generated_text.count("Input") == 3
 
         return any(token in generated_text for token in self.stopping_tokens)
         # return '\n' in generated_text
