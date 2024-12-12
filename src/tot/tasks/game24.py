@@ -3,7 +3,7 @@ import os
 import sympy
 import pandas as pd
 from tot.tasks.base import Task, DATA_PATH
-from tot.prompts.game24 import * 
+from tot.prompts.game24 import *
 
 
 def get_current_numbers(y: str) -> str:
@@ -16,9 +16,9 @@ class Game24Task(Task):
     Input (x)   : a string of 4 numbers
     Output (y)  : a trajectory of 3 steps to reach 24
     Reward (r)  : 0 or 1, depending on whether the trajectory is correct
-    Input Example: 
+    Input Example:
         1 2 3 4
-    Output Example: 
+    Output Example:
         1 + 2 = 3 (left: 3 3 4)
         3 + 3 = 6 (left: 4 6)
         6 * 4 = 24 (left: 24)
@@ -37,7 +37,7 @@ class Game24Task(Task):
 
     def __len__(self) -> int:
         return len(self.data)
-    
+
     def get_input(self, idx: int) -> str:
         return self.data[idx]
 
@@ -53,7 +53,7 @@ class Game24Task(Task):
         except Exception as e:
             # print(e)
             return {'r': 0}
-            
+
     @staticmethod
     def standard_prompt_wrap(x: str, y:str='') -> str:
         return standard_prompt.format(input=x) + y
@@ -61,7 +61,7 @@ class Game24Task(Task):
     @staticmethod
     def cot_prompt_wrap(x: str, y:str='') -> str:
         return cot_prompt.format(input=x) + y
-    
+
     @staticmethod
     def propose_prompt_wrap(x: str, y: str='') -> str:
         current_numbers = get_current_numbers(y if y else x)
@@ -71,7 +71,7 @@ class Game24Task(Task):
         else:
             prompt = propose_prompt.format(input=current_numbers)
         return prompt
-    
+
     @staticmethod
     def value_prompt_wrap(x: str, y: str) -> str:
         last_line = y.strip().split('\n')[-1]
@@ -81,7 +81,7 @@ class Game24Task(Task):
             return value_last_step_prompt.format(input=x, answer=ans)
         current_numbers = get_current_numbers(y)
         return value_prompt.format(input=current_numbers)
-    
+
     @staticmethod
     def value_outputs_unwrap(x: str, y: str, value_outputs: list) -> float:
         if len(y.strip().split('\n')) == 4 and 'answer' not in y.lower():

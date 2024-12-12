@@ -7,11 +7,18 @@ class StopOnNewline(transformers.StoppingCriteria):
     def __init__(self, tokenizer, stopping_tokens):
         self.tokenizer = tokenizer
         self.stopping_tokens = stopping_tokens
+        self.input_count = 0
 
     def __call__(self, input_ids, scores, **kwargs):
         # Decode the generated tokens to text
         generated_text = self.tokenizer.decode(input_ids[0], skip_special_tokens=True)
-        # Check if the generated text contains a newline character
+
+        if "Input" in self.stopping_tokens:
+            self.input_count += 1
+            if self.input_count == 3:
+                return True
+            return False
+
         return any(token in generated_text for token in self.stopping_tokens)
         # return '\n' in generated_text
 
