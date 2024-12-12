@@ -34,7 +34,7 @@ def chatgpt(messages, model="llama", temperature=0.7, max_tokens=1000, n=1, stop
 
         outputs.extend(res)
         # log completion tokens
-    print("Outputs: ", outputs)
+    # print("Outputs: ", outputs)
     return outputs
 
 # @backoff.on_exception(backoff.expo, openai.error.OpenAIError)
