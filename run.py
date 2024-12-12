@@ -5,6 +5,9 @@ import argparse
 from tot.tasks import get_task
 from tot.methods.bfs import solve, naive_solve
 from tot.models import gpt_usage
+from transformers import pipeline
+import torch
+
 
 def run(args):
     task = get_task(args.task)
@@ -15,12 +18,24 @@ def run(args):
         file = f'./logs/{args.task}/{args.backend}_{args.temperature}_{args.method_generate}{args.n_generate_sample}_{args.method_evaluate}{args.n_evaluate_sample}_{args.method_select}{args.n_select_sample}_start{args.task_start_index}_end{args.task_end_index}.json'
     os.makedirs(os.path.dirname(file), exist_ok=True)
 
+    # Set model
+    if args.backend == "llama":
+        model_id = "meta-llama/Meta-Llama-3.1-70B-Instruct"
+        model_pipeline = pipeline(
+            "text-generation",
+            model=model_id,
+            model_kwargs={"torch_dtype": torch.bfloat16},
+            device_map="auto",
+        )
+    else:
+        raise TypeError("Model must be llama")
+
     for i in range(args.task_start_index, args.task_end_index):
         # solve
         if args.naive_run:
             ys, info = naive_solve(args, task, i)
         else:
-            ys, info = solve(args, task, i)
+            ys, info = solve(args, task, i, model_pipeline)
 
         # log
         infos = [task.test_output(i, y) for y in ys]
