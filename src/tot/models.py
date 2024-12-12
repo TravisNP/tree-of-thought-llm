@@ -16,8 +16,7 @@ class StopOnNewline(transformers.StoppingCriteria):
         # return '\n' in generated_text
 
 def gpt(prompt, model="llama", temperature=0.7, max_tokens=1000, n=1, stop=None) -> list:
-    messages = [{"role": "user", "content": prompt}]
-    return chatgpt(messages, model=model, temperature=temperature, max_tokens=max_tokens, n=n, stop=stop)
+    return chatgpt(prompt, model=model, temperature=temperature, max_tokens=max_tokens, n=n, stop=stop)
 
 def chatgpt(messages, model="llama", temperature=0.7, max_tokens=1000, n=1, stop=None) -> list:
     outputs = []
@@ -27,7 +26,7 @@ def chatgpt(messages, model="llama", temperature=0.7, max_tokens=1000, n=1, stop
         cnt = min(n, 20)
         n -= cnt
         res = completions_with_backoff(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens, n=cnt, stop=stop)
-        outputs.append(res[0]["generated_text"][-1]["content"])
+        outputs.append(res[0]["generated_text"])
         print("res: ", res)
         # log completion tokens
     print("Outputs: ", outputs)
