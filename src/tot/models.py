@@ -34,7 +34,7 @@ def gpt_24_proposal(prompt, pipeline, inputAmount, temperature=0.7, max_tokens=1
         temperature = temperature,
         num_return_sequences = 1,
         stopping_criteria = transformers.StoppingCriteriaList([StopOnXInput(tokenizer=pipeline.tokenizer, inputAmount=inputAmount)])
-    )[0]["generated_text"].split("\n")[12:-1]
+    )
 
 def gpt_24_value(prompt, pipeline, lastStep, temperature=0.7, max_tokens=1000, n=1):
     return [gpt_24_value_query(prompt, pipeline, lastStep, temperature, max_tokens)[0]["generated_text"] for _ in range(n)]
