@@ -1,26 +1,26 @@
 import itertools
 import numpy as np
 from functools import partial
-from tot.models import gpt
+from tot.models import gpt, gpt24
 
-def get_value(task, x, y, n_evaluate_sample, cache_value=True):
+def get_value(task, x, y, n_evaluate_sample, model_pipeline, cache_value=True):
     value_prompt = task.value_prompt_wrap(x, y)
     if cache_value and value_prompt in task.value_cache:
         return task.value_cache[value_prompt]
-    value_outputs = gpt(value_prompt, n=n_evaluate_sample, stop=None)
+    value_outputs = gpt(value_prompt, model_pipeline, n=n_evaluate_sample, stop=None)
     value = task.value_outputs_unwrap(x, y, value_outputs)
     if cache_value:
         task.value_cache[value_prompt] = value
     return value
 
-def get_values(task, x, ys, n_evaluate_sample, cache_value=True):
+def get_values(task, x, ys, n_evaluate_sample, model_pipeline, cache_value=True):
     values = []
     local_value_cache = {}
     for y in ys:  # each partial output
         if y in local_value_cache:  # avoid duplicate candidates
             value = 0
         else:
-            value = get_value(task, x, y, n_evaluate_sample, cache_value=cache_value)
+            value = get_value(task, x, y, n_evaluate_sample, model_pipeline, cache_value=cache_value)
             local_value_cache[y] = value
         values.append(value)
     return values
@@ -33,7 +33,7 @@ def get_votes(task, x, ys, n_evaluate_sample):
 
 def get_proposals(task, x, y, model_pipeline):
     propose_prompt = task.propose_prompt_wrap(x, y)
-    proposals = gpt(propose_prompt, model_pipeline, n=1, stop=None)[0].split('\n')
+    proposals = gpt24(propose_prompt, model_pipeline, n=1)[0]["generated_text"].split("\n")[12:-1]
     return [y + _ + '\n' for _ in proposals]
 
 def get_samples(task, x, y, n_generate_sample, prompt_sample, stop):
@@ -65,7 +65,7 @@ def solve(args, task, idx, model_pipeline, to_print=True):
         if args.method_evaluate == 'vote':
             values = get_votes(task, x, new_ys, args.n_evaluate_sample)
         elif args.method_evaluate == 'value':
-            values = get_values(task, x, new_ys, args.n_evaluate_sample)
+            values = get_values(task, x, new_ys, args.n_evaluate_sample, model_pipeline)
 
         # selection
         if args.method_select == 'sample':
