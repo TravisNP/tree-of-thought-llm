@@ -61,6 +61,9 @@ def solve(args, task, idx, model_pipeline, to_print=True):
             new_ys = [get_proposals(task, x, y, model_pipeline) for y in ys]
         new_ys = list(itertools.chain(*new_ys))
         ids = list(range(len(new_ys)))
+
+        print("QUITTING")
+        return
         # evaluation
         if args.method_evaluate == 'vote':
             values = get_votes(task, x, new_ys, args.n_evaluate_sample)
