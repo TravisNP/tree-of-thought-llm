@@ -7,7 +7,7 @@ def get_value(task, x, y, n_evaluate_sample, model_pipeline, cache_value=True):
     value_prompt = task.value_prompt_wrap(x, y)
     if cache_value and value_prompt in task.value_cache:
         return task.value_cache[value_prompt]
-    value_outputs = gpt_24_value(value_prompt, model_pipeline, n=n_evaluate_sample, stop=None)
+    value_outputs = gpt_24_value(value_prompt, model_pipeline, n=n_evaluate_sample)
     value = task.value_outputs_unwrap(x, y, value_outputs)
     if cache_value:
         task.value_cache[value_prompt] = value
