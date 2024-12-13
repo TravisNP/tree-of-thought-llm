@@ -10,8 +10,7 @@ class StopOn3Input(transformers.StoppingCriteria):
         # Decode the generated tokens to text
         generated_text = self.tokenizer.decode(input_ids[0], skip_special_tokens=True)
 
-        # When running in propose prompt mode, "input" is passed as a stopping condition. Input is seen in the prompt twice.
-        # When the llm tries generating a new input, stop
+        # Input is seen in the prompt twice. When the llm tries generating a new input, stop
         return generated_text.count("Input") == 3
 
 class StopOnEvaluation(transformers.StoppingCriteria):
@@ -23,29 +22,28 @@ class StopOnEvaluation(transformers.StoppingCriteria):
         # Decode the generated tokens to text
         generated_text = self.tokenizer.decode(input_ids[0], skip_special_tokens=True)
 
-        # for word, threshold in self.possibleEvaluationStops.items():
-        #     if generated_text.count(word) == threshold:
-        #         print(generated_text, word, threshold)
-        #         return True
-
-        # return False
+        # When running with value prompt, sure, impossible, and likely are seen minus 1 as many times in possibleEvaluationStops
+        # When see the threshold, stop generating
         return any(generated_text.count(word) == threshold for word, threshold in self.possibleEvaluationStops.items())
 
-def gpt24proposal(prompt, pipeline, temperature=0.7, max_tokens=1000, n=1):
+def gpt24proposal(prompt, pipeline, temperature=0.7, max_tokens=1000):
     return pipeline(
         prompt,
         max_new_tokens = max_tokens,
         temperature = temperature,
-        num_return_sequences = n,
+        num_return_sequences = 1,
         stopping_criteria = transformers.StoppingCriteriaList([StopOn3Input(tokenizer=pipeline.tokenizer)])
-    )
+    )[0]["generated_text"].split("\n")[12:-1]
 
-def gpt24value(prompt, pipeline, temperature=0.7, max_tokens=1000, n=1):
+def gpt_24_value(prompt, pipeline, temperature=0.7, max_tokens=1000, n=1):
+    return [gpt_24_value_query(prompt, pipeline, temperature, max_tokens)[0]["generated_text"] for _ in range(n)]
+
+def gpt_24_value_query(prompt, pipeline, temperature, max_tokens):
     return pipeline(
         prompt,
         max_new_tokens = max_tokens,
         temperature = temperature,
-        num_return_sequences = n,
+        num_return_sequences = 1,
         stopping_criteria = transformers.StoppingCriteriaList([StopOnEvaluation(tokenizer=pipeline.tokenizer)])
     )
 
