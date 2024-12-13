@@ -1,13 +1,13 @@
 import itertools
 import numpy as np
 from functools import partial
-from tot.models import gpt, gpt_24_proposal
+from tot.models import gpt, gpt_24_proposal, gpt_24_value
 
 def get_value(task, x, y, n_evaluate_sample, model_pipeline, cache_value=True):
     value_prompt = task.value_prompt_wrap(x, y)
     if cache_value and value_prompt in task.value_cache:
         return task.value_cache[value_prompt]
-    value_outputs = gpt(value_prompt, model_pipeline, n=n_evaluate_sample, stop=None)
+    value_outputs = gpt_24_value(value_prompt, model_pipeline, n=n_evaluate_sample, stop=None)
     value = task.value_outputs_unwrap(x, y, value_outputs)
     if cache_value:
         task.value_cache[value_prompt] = value
@@ -21,6 +21,7 @@ def get_values(task, x, ys, n_evaluate_sample, model_pipeline, cache_value=True)
             value = 0
         else:
             value = get_value(task, x, y, n_evaluate_sample, model_pipeline, cache_value=cache_value)
+            print(y, value)
             local_value_cache[y] = value
         values.append(value)
     return values
@@ -68,6 +69,9 @@ def solve(args, task, idx, model_pipeline, to_print=True):
         elif args.method_evaluate == 'value':
             values = get_values(task, x, new_ys, args.n_evaluate_sample, model_pipeline)
 
+        print(new_ys)
+        print(values)
+
         # selection
         if args.method_select == 'sample':
             ps = np.array(values) / sum(values)
@@ -80,6 +84,8 @@ def solve(args, task, idx, model_pipeline, to_print=True):
         if to_print:
             sorted_new_ys, sorted_values = zip(*sorted(zip(new_ys, values), key=lambda x: x[1], reverse=True))
             print(f'-- new_ys --: {sorted_new_ys}\n-- sol values --: {sorted_values}\n-- choices --: {select_new_ys}\n')
+
+        return
 
         infos.append({'step': step, 'x': x, 'ys': ys, 'new_ys': new_ys, 'values': values, 'select_new_ys': select_new_ys})
         ys = select_new_ys
