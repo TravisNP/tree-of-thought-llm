@@ -26,7 +26,7 @@ class StopOnEvaluation(transformers.StoppingCriteria):
         # When see the threshold, stop generating
         return any(generated_text.count(word) == threshold for word, threshold in self.possibleEvaluationStops.items())
 
-def gpt24proposal(prompt, pipeline, temperature=0.7, max_tokens=1000):
+def gpt_24_proposal(prompt, pipeline, temperature=0.7, max_tokens=1000):
     return pipeline(
         prompt,
         max_new_tokens = max_tokens,

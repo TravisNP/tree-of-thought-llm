@@ -1,7 +1,7 @@
 import itertools
 import numpy as np
 from functools import partial
-from tot.models import gpt, gpt24proposal
+from tot.models import gpt, gpt_24_proposal
 
 def get_value(task, x, y, n_evaluate_sample, model_pipeline, cache_value=True):
     value_prompt = task.value_prompt_wrap(x, y)
@@ -33,7 +33,7 @@ def get_votes(task, x, ys, n_evaluate_sample):
 
 def get_proposals(task, x, y, model_pipeline):
     propose_prompt = task.propose_prompt_wrap(x, y)
-    proposals = gpt24proposal(propose_prompt, model_pipeline, n=1)
+    proposals = gpt_24_proposal(propose_prompt, model_pipeline)
     return [y + _ + '\n' for _ in proposals]
 
 def get_samples(task, x, y, n_generate_sample, prompt_sample, stop):
