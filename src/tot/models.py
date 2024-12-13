@@ -2,16 +2,17 @@ import os
 import transformers
 import torch
 
-class StopOn3Input(transformers.StoppingCriteria):
-    def __init__(self, tokenizer):
+class StopOnXInput(transformers.StoppingCriteria):
+    def __init__(self, tokenizer, inputAmount):
         self.tokenizer = tokenizer
+        self.inputAmount = inputAmount
 
     def __call__(self, input_ids, scores, **kwargs):
         # Decode the generated tokens to text
         generated_text = self.tokenizer.decode(input_ids[0], skip_special_tokens=True)
 
-        # Input is seen in the prompt twice. When the llm tries generating a new input, stop
-        return generated_text.count("Input") == 3
+        # Input is seen in the prompt X. When the llm tries generating a new input, stop
+        return generated_text.count("Input") == self.inputAmount
 
 class StopOnEvaluation(transformers.StoppingCriteria):
     def __init__(self, tokenizer):
@@ -26,13 +27,13 @@ class StopOnEvaluation(transformers.StoppingCriteria):
         # When see the threshold, stop generating
         return any(generated_text.count(word) == threshold for word, threshold in self.possibleEvaluationStops.items())
 
-def gpt_24_proposal(prompt, pipeline, temperature=0.7, max_tokens=1000):
+def gpt_24_proposal(prompt, pipeline, inputAmount, temperature=0.7, max_tokens=1000):
     return pipeline(
         prompt,
         max_new_tokens = max_tokens,
         temperature = temperature,
         num_return_sequences = 1,
-        stopping_criteria = transformers.StoppingCriteriaList([StopOn3Input(tokenizer=pipeline.tokenizer)])
+        stopping_criteria = transformers.StoppingCriteriaList([StopOnXInput(tokenizer=pipeline.tokenizer, inputAmount=inputAmount)])
     )[0]["generated_text"].split("\n")[12:-1]
 
 def gpt_24_value(prompt, pipeline, lastStep, temperature=0.7, max_tokens=1000, n=1):

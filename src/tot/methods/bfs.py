@@ -31,9 +31,11 @@ def get_votes(task, x, ys, n_evaluate_sample):
     values = task.vote_outputs_unwrap(vote_outputs, len(ys))
     return values
 
-def get_proposals(task, x, y, model_pipeline):
+def get_proposals(task, x, y, model_pipeline, lastInput):
     propose_prompt = task.propose_prompt_wrap(x, y)
-    proposals = gpt_24_proposal(propose_prompt, model_pipeline)
+
+    # 3 inputs to stop regular prompt, 7 inputs to stop final prompt
+    proposals = gpt_24_proposal(propose_prompt, model_pipeline, 3 + 4 * lastInput)
     return [y + _ + '\n' for _ in proposals]
 
 def get_samples(task, x, y, n_generate_sample, prompt_sample, stop):
@@ -58,7 +60,7 @@ def solve(args, task, idx, model_pipeline, to_print=True):
         if args.method_generate == 'sample':
             new_ys = [get_samples(task, x, y, args.n_generate_sample, prompt_sample=args.prompt_sample, stop=task.stops[step]) for y in ys]
         elif args.method_generate == 'propose':
-            new_ys = [get_proposals(task, x, y, model_pipeline) for y in ys]
+            new_ys = [get_proposals(task, x, y, model_pipeline, step == task.steps - 1) for y in ys]
         new_ys = list(itertools.chain(*new_ys))
         ids = list(range(len(new_ys)))
 
