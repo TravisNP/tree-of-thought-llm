@@ -23,13 +23,13 @@ class StopOnEvaluation(transformers.StoppingCriteria):
         # Decode the generated tokens to text
         generated_text = self.tokenizer.decode(input_ids[0], skip_special_tokens=True)
 
-        for word, threshold in self.possibleEvaluationStops.items():
-            if generated_text.count(word) == threshold:
-                print(generated_text, word, threshold)
-                return True
+        # for word, threshold in self.possibleEvaluationStops.items():
+        #     if generated_text.count(word) == threshold:
+        #         print(generated_text, word, threshold)
+        #         return True
 
-        return False
-        # return any(generated_text.count(word) == threshold for word, threshold in self.possibleEvaluationStops.items())
+        # return False
+        return any(generated_text.count(word) == threshold for word, threshold in self.possibleEvaluationStops.items())
 
 def gpt24proposal(prompt, pipeline, temperature=0.7, max_tokens=1000, n=1):
     return pipeline(
