@@ -36,9 +36,10 @@ def get_proposals(task, x, y, model_pipeline, lastInput):
 
     # 3 inputs to stop regular prompt, 7 inputs to stop final prompt
     if lastInput:
-        proposals = gpt_24_proposal(propose_prompt, model_pipeline, 7)[0]["generated_text"]
-    else:
-        proposals = gpt_24_proposal(propose_prompt, model_pipeline, 3)[0]["generated_text"].split("\n")[12:-1]
+        proposal = gpt_24_proposal(propose_prompt, model_pipeline, 7)[0]["generated_text"].split("\n")[31:-1]
+        return proposal
+
+    proposals = gpt_24_proposal(propose_prompt, model_pipeline, 3)[0]["generated_text"].split("\n")[12:-1]
     return [y + _ + '\n' for _ in proposals]
 
 def get_samples(task, x, y, n_generate_sample, prompt_sample, stop):
