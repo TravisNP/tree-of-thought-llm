@@ -35,10 +35,19 @@ def gpt_24_proposal(prompt, pipeline, temperature=0.7, max_tokens=1000):
         stopping_criteria = transformers.StoppingCriteriaList([StopOn3Input(tokenizer=pipeline.tokenizer)])
     )[0]["generated_text"].split("\n")[12:-1]
 
-def gpt_24_value(prompt, pipeline, temperature=0.7, max_tokens=1000, n=1):
-    return [gpt_24_value_query(prompt, pipeline, temperature, max_tokens)[0]["generated_text"] for _ in range(n)]
+def gpt_24_value(prompt, pipeline, lastStep, temperature=0.7, max_tokens=1000, n=1):
+    return [gpt_24_value_query(prompt, pipeline, lastStep, temperature, max_tokens)[0]["generated_text"] for _ in range(n)]
 
-def gpt_24_value_query(prompt, pipeline, temperature, max_tokens):
+def gpt_24_value_query(prompt, pipeline, lastStep, temperature, max_tokens):
+    if lastStep:
+        return pipeline(
+            prompt,
+            max_new_tokens = max_tokens,
+            temperature = temperature,
+            num_return_sequences = 1,
+            stopping_criteria = transformers.StoppingCriteriaList([StopOnEvaluation(tokenizer=pipeline.tokenizer)])
+        )
+
     return pipeline(
         prompt,
         max_new_tokens = max_tokens,
