@@ -1,7 +1,7 @@
 import itertools
 import numpy as np
 from functools import partial
-from tot.models import gpt, gpt24
+from tot.models import gpt, gpt24proposal
 
 def get_value(task, x, y, n_evaluate_sample, model_pipeline, cache_value=True):
     value_prompt = task.value_prompt_wrap(x, y)
@@ -33,7 +33,7 @@ def get_votes(task, x, ys, n_evaluate_sample):
 
 def get_proposals(task, x, y, model_pipeline):
     propose_prompt = task.propose_prompt_wrap(x, y)
-    proposals = gpt24(propose_prompt, model_pipeline, n=1)[0]["generated_text"].split("\n")[12:-1]
+    proposals = gpt24proposal(propose_prompt, model_pipeline, n=1)[0]["generated_text"].split("\n")[12:-1]
     return [y + _ + '\n' for _ in proposals]
 
 def get_samples(task, x, y, n_generate_sample, prompt_sample, stop):
@@ -61,9 +61,7 @@ def solve(args, task, idx, model_pipeline, to_print=True):
             new_ys = [get_proposals(task, x, y, model_pipeline) for y in ys]
         new_ys = list(itertools.chain(*new_ys))
         ids = list(range(len(new_ys)))
-        print(new_ys)
-        print("QUITTING")
-        return
+
         # evaluation
         if args.method_evaluate == 'vote':
             values = get_votes(task, x, new_ys, args.n_evaluate_sample)

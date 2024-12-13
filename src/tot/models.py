@@ -14,13 +14,21 @@ class StopOn3Input(transformers.StoppingCriteria):
         # When the llm tries generating a new input, stop
         return generated_text.count("Input") == 3
 
-def gpt24(prompt, pipeline, temperature=0.7, max_tokens=1000, n=1):
+def gpt24proposal(prompt, pipeline, temperature=0.7, max_tokens=1000, n=1):
     return pipeline(
         prompt,
         max_new_tokens = max_tokens,
         temperature = temperature,
         num_return_sequences = n,
         stopping_criteria = transformers.StoppingCriteriaList([StopOn3Input(tokenizer=pipeline.tokenizer)])
+    )
+
+def gpt24value(prompt, pipeline, temperature=0.7, max_tokens=1000, n=1):
+    return pipeline(
+        prompt,
+        max_new_tokens = max_tokens,
+        temperature = temperature,
+        num_return_sequences = n
     )
 
 def gpt(prompt, pipeline, temperature=0.7, max_tokens=1000, n=1, stop=None) -> list:
