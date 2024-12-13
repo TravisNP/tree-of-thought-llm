@@ -14,6 +14,20 @@ class StopOn3Input(transformers.StoppingCriteria):
         # When the llm tries generating a new input, stop
         return generated_text.count("Input") == 3
 
+class StopOnEvaluation(transformers.StoppingCriteria):
+    def __init__(self, tokenizer):
+        self.tokenizer = tokenizer
+        self.possibleEvaluationStops = {"sure": 5, "impossible": 5, "likely": 4}
+
+    def __call__(self, input_ids, scores, **kwargs):
+        # Decode the generated tokens to text
+        generated_text = self.tokenizer.decode(input_ids[0], skip_special_tokens=True)
+
+        # When running in propose prompt mode, "input" is passed as a stopping condition. Input is seen in the prompt twice.
+        # When the llm tries generating a new input, stop
+
+        return any(generated_text.count(word) == threshold for word, threshold in self.possibleEvaluationStops.items())
+
 def gpt24proposal(prompt, pipeline, temperature=0.7, max_tokens=1000, n=1):
     return pipeline(
         prompt,
@@ -28,7 +42,8 @@ def gpt24value(prompt, pipeline, temperature=0.7, max_tokens=1000, n=1):
         prompt,
         max_new_tokens = max_tokens,
         temperature = temperature,
-        num_return_sequences = n
+        num_return_sequences = n,
+        stopping_criteria = transformers.StoppingCriteriaList([StopOnEvaluation(tokenizer=pipeline.tokenizer)])
     )
 
 def gpt(prompt, pipeline, temperature=0.7, max_tokens=1000, n=1, stop=None) -> list:
