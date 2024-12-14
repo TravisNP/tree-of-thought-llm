@@ -4,11 +4,14 @@ from functools import partial
 from tot.models import gpt, gpt_24_proposal, gpt_24_value
 
 def get_value(task, x, y, n_evaluate_sample, model_pipeline, lastStep, cache_value=True):
-    value_prompt = task.value_prompt_wrap(x, y)
+    value_prompt = task.value_prompt_wrap(x, y, lastStep)
     if cache_value and value_prompt in task.value_cache:
         return task.value_cache[value_prompt]
-    value_outputs = gpt_24_value(value_prompt, model_pipeline, lastStep, n=n_evaluate_sample)
-    value = task.value_outputs_unwrap(x, y, value_outputs)
+    if value_prompt == "BAD":
+        value = 0
+    else:
+        value_outputs = gpt_24_value(value_prompt, model_pipeline, lastStep, n=n_evaluate_sample)
+        value = task.value_outputs_unwrap(x, y, value_outputs)
     if cache_value:
         task.value_cache[value_prompt] = value
     return value

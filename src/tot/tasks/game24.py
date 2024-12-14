@@ -73,12 +73,15 @@ class Game24Task(Task):
         return prompt
 
     @staticmethod
-    def value_prompt_wrap(x: str, y: str) -> str:
+    def value_prompt_wrap(x: str, y: str, lastStep: bool) -> str:
         last_line = y.strip().split('\n')[-1]
-        if 'left: ' not in last_line:  # last step
-            ans = last_line.lower().replace('answer: ', '')
-            # print([value_last_step_prompt.format(input=x, answer=ans)])
-            return value_last_step_prompt.format(input=x, answer=ans)
+        if lastStep:
+            if 'left: ' not in last_line:  # last step
+                ans = last_line.lower().replace('answer: ', '')
+                # print([value_last_step_prompt.format(input=x, answer=ans)])
+                return value_last_step_prompt.format(input=x, answer=ans)
+            else:
+                return "BAD"
         current_numbers = get_current_numbers(y)
         return value_prompt.format(input=current_numbers)
 
