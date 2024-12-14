@@ -7,6 +7,7 @@ def get_value(task, x, y, n_evaluate_sample, model_pipeline, lastStep, cache_val
     value_prompt = task.value_prompt_wrap(x, y, lastStep)
     if cache_value and value_prompt in task.value_cache:
         return task.value_cache[value_prompt]
+    print(value_prompt)
     if value_prompt == "BAD":
         value = 0
     else:
