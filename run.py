@@ -20,7 +20,7 @@ def run(args):
 
     # Set model
     if args.backend == "llama":
-        model_id = "meta-llama/Meta-Llama-3.1-70B-Instruct"
+        model_id = "meta-llama/Llama-3.3-70B-Instruct"
         model_pipeline = pipeline(
             "text-generation",
             model=model_id,
