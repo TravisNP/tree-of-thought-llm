@@ -75,6 +75,7 @@ class Game24Task(Task):
     @staticmethod
     def value_prompt_wrap(x: str, y: str, lastStep: bool) -> str:
         last_line = y.strip().split('\n')[-1]
+        print(last_line)
         if lastStep:
             if 'left: ' not in last_line:  # last step
                 ans = last_line.lower().replace('answer: ', '')
