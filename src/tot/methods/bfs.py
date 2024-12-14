@@ -75,11 +75,15 @@ def solve(args, task, idx, model_pipeline, to_print=True):
         new_ys = list(itertools.chain(*new_ys))
         ids = list(range(len(new_ys)))
 
+        print("Proposals: ", new_ys)
+
         # evaluation
         if args.method_evaluate == 'vote':
             values = get_votes(task, x, new_ys, args.n_evaluate_sample)
         elif args.method_evaluate == 'value':
             values = get_values(task, x, new_ys, args.n_evaluate_sample, model_pipeline, step == task.steps - 1)
+
+        print("Values: ", values)
 
         # selection
         if args.method_select == 'sample':
@@ -88,6 +92,8 @@ def solve(args, task, idx, model_pipeline, to_print=True):
         elif args.method_select == 'greedy':
             select_ids = sorted(ids, key=lambda x: values[x], reverse=True)[:args.n_select_sample]
         select_new_ys = [new_ys[select_id] for select_id in select_ids]
+
+        print("Best proposals: ", select_new_ys)
 
         # log
         if to_print:
