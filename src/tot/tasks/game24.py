@@ -66,7 +66,7 @@ class Game24Task(Task):
     def propose_prompt_wrap(x: str, y: str='') -> str:
         current_numbers = get_current_numbers(y if y else x)
         if current_numbers == '24':
-            prompt = cot_prompt.format(input=x) + 'Steps:' + y
+            prompt = cot_prompt.format(input=x) + 'Steps:\n' + y
             # print([prompt])
         else:
             prompt = propose_prompt.format(input=current_numbers)
