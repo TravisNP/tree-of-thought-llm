@@ -87,6 +87,7 @@ class Game24Task(Task):
 
     @staticmethod
     def value_outputs_unwrap(x: str, y: str, value_outputs: list) -> float:
+        print(y)
         if len(y.strip().split('\n')) == 4 and 'answer' not in y.lower():
             return 0
         value_names = [_.split('\n')[-1] for _ in value_outputs]
