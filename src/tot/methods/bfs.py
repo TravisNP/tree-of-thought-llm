@@ -40,10 +40,9 @@ def get_proposals(task, x, y, model_pipeline, lastInput):
 
     # 7 inputs to stop final prompt
     if lastInput:
+        print(get_current_numbers(y), " --- ", y)
         if get_current_numbers(y) != 24:
-            print("HERE", y)
             return [y + "1 + 1 = 2 (left: 2)\n"]
-        print("24!!!!!!", y)
         proposal = "\n".join(gpt_24_proposal(propose_prompt, model_pipeline, 7)[0]["generated_text"].split("\n")[33:-1]) + '\n'
         return [proposal]
 
