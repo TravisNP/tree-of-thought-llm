@@ -11,6 +11,7 @@ def get_value(task, x, y, n_evaluate_sample, model_pipeline, lastStep, cache_val
         value = 0
     else:
         value_outputs = gpt_24_value(value_prompt, model_pipeline, lastStep, n=n_evaluate_sample)
+        print(value_outputs)
         value = task.value_outputs_unwrap(x, y, value_outputs)
     if cache_value:
         task.value_cache[value_prompt] = value
