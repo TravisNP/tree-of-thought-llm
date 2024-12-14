@@ -15,9 +15,9 @@ class StopOnXInput(transformers.StoppingCriteria):
         return generated_text.count("Input") == self.inputAmount
 
 class StopOnEvaluation(transformers.StoppingCriteria):
-    def __init__(self, tokenizer):
+    def __init__(self, tokenizer, possibleEvaluationStops):
         self.tokenizer = tokenizer
-        self.possibleEvaluationStops = {"sure": 5, "impossible": 5, "likely": 4}
+        self.possibleEvaluationStops = possibleEvaluationStops
 
     def __call__(self, input_ids, scores, **kwargs):
         # Decode the generated tokens to text
@@ -37,23 +37,20 @@ def gpt_24_proposal(prompt, pipeline, inputAmount, temperature=0.7, max_tokens=1
     )
 
 def gpt_24_value(prompt, pipeline, lastStep, temperature=0.7, max_tokens=1000, n=1):
+    return [gpt_24_value_query(prompt, pipeline, lastStep, temperature, max_tokens)[0]["generated_text"] for _ in range(n)]
+
+def gpt_24_value_query(prompt, pipeline, lastStep, temperature, max_tokens):
     if lastStep:
-        return [pipeline(
-            prompt,
-            max_new_tokens = max_tokens,
-            temperature = temperature,
-            num_return_sequences = 1,
-            stopping_criteria = transformers.StoppingCriteriaList([StopOnXInput(tokenizer=pipeline.tokenizer, inputAmount=8)]))[0]["generated_text"]]
+        stoppingCriteria = StopOnEvaluation(tokenizer=pipeline.tokenizer, possibleEvaluationStops={"sure": 5, "impossible": 5, "likely": -1})
+    else:
+        stoppingCriteria = StopOnEvaluation(tokenizer=pipeline.tokenizer, possibleEvaluationStops={"sure": 5, "impossible": 5, "likely": 4})
 
-    return [gpt_24_value_query(prompt, pipeline, temperature, max_tokens)[0]["generated_text"] for _ in range(n)]
-
-def gpt_24_value_query(prompt, pipeline, temperature, max_tokens):
     return pipeline(
         prompt,
         max_new_tokens = max_tokens,
         temperature = temperature,
         num_return_sequences = 1,
-        stopping_criteria = transformers.StoppingCriteriaList([StopOnEvaluation(tokenizer=pipeline.tokenizer)])
+        stopping_criteria = transformers.StoppingCriteriaList([stoppingCriteria])
     )
 
 def gpt(prompt, pipeline, temperature=0.7, max_tokens=1000, n=1, stop=None) -> list:
