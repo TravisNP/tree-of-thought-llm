@@ -2,6 +2,7 @@ import itertools
 import numpy as np
 from functools import partial
 from tot.models import gpt, gpt_24_proposal, gpt_24_value
+from tot.tasks.game24 import get_current_numbers
 
 def get_value(task, x, y, n_evaluate_sample, model_pipeline, lastStep, cache_value=True):
     value_prompt = task.value_prompt_wrap(x, y, lastStep)
@@ -37,11 +38,14 @@ def get_votes(task, x, ys, n_evaluate_sample):
 def get_proposals(task, x, y, model_pipeline, lastInput):
     propose_prompt = task.propose_prompt_wrap(x, y)
 
-    # 3 inputs to stop regular prompt, 7 inputs to stop final prompt
+    # 7 inputs to stop final prompt
     if lastInput:
+        if get_current_numbers(y) != 24:
+            return y + "1 + 1 = 2 (left: 2)\n"
         proposal = "\n".join(gpt_24_proposal(propose_prompt, model_pipeline, 7)[0]["generated_text"].split("\n")[33:-1]) + '\n'
         return proposal
 
+    # 3 inputs to stop regular prompt,
     proposals = gpt_24_proposal(propose_prompt, model_pipeline, 3)[0]["generated_text"].split("\n")[12:-1]
     return [y + _ + '\n' for _ in proposals]
 
