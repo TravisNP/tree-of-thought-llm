@@ -131,4 +131,4 @@ Judge:
 impossible
 Input: {input}
 Answer: {answer}
-Judge:'''
+Judge:\n'''
