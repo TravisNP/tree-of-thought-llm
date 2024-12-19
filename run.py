@@ -4,8 +4,8 @@ import argparse
 
 from tot.tasks import get_task
 from tot.methods.bfs import solve, naive_solve
-from tot.models import gpt_usage
-from transformers import pipeline
+from tot.models import gpt_usage, Model
+from transformers import pipeline, AutoTokenizer
 import torch
 
 
@@ -16,12 +16,16 @@ def run(args):
     # Set model
     if args.backend == "llama":
         model_id = "meta-llama/Llama-3.3-70B-Instruct"
+        tokenizer = AutoTokenizer.from_pretrained(model_id, padding_side='left')
+        tokenizer.pad_token = tokenizer.eos_token
         model_pipeline = pipeline(
             "text-generation",
             model=model_id,
+            tokenizer=tokenizer,
             model_kwargs={"torch_dtype": torch.bfloat16},
             device_map="auto",
-        )
+        ) if True else None
+        model = Model(model_pipeline, model_id)
     else:
         raise TypeError("Model must be llama")
 
@@ -36,7 +40,7 @@ def run(args):
         if args.naive_run:
             ys, info = naive_solve(args, task, i)
         else:
-            ys, info = solve(args, task, i, model_pipeline)
+            ys, info = solve(args, task, i, model)
 
         # log
         infos = [task.test_output(i, y) for y in ys]
