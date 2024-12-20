@@ -1,6 +1,7 @@
 import os
 import json
 import argparse
+import time
 
 from tot.tasks import get_task
 from tot.methods.bfs import solve, naive_solve
@@ -40,11 +41,13 @@ def run(args):
         if args.naive_run:
             ys, info = naive_solve(args, task, i)
         else:
+            start_time = time.time()
             ys, info = solve(args, task, i, model)
+            end_time = time.time()
 
         # log
         infos = [task.test_output(i, y) for y in ys]
-        info.update({'idx': i, 'ys': ys, 'infos': infos, 'usage_so_far': gpt_usage(args.backend)})
+        info.update({'idx': i, 'ys': ys, 'infos': infos, 'usage_so_far': end_time - start_time})
         logs.append(info)
         with open(file, 'w') as f:
             json.dump(logs, f, indent=4)

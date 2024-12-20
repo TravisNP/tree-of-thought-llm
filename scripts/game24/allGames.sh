@@ -1,8 +1,8 @@
 python run.py \
     --backend llama \
     --task game24 \
-    --task_start_index 900 \
-    --task_end_index 901 \
+    --task_start_index 1 \
+    --task_end_index 3 \
     --method_generate propose \
     --method_evaluate value \
     --method_select greedy \

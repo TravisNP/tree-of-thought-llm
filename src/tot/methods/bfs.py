@@ -120,8 +120,9 @@ def solve(args, task, idx, model, to_print=True):
         if args.method_generate == 'sample':
             new_ys = [get_samples(task, x, y, args.n_generate_sample, prompt_sample=args.prompt_sample, stop=task.stops[step]) for y in ys]
         elif args.method_generate == 'propose':
-            new_ys = [get_proposals(task, x, y, model, step == task.steps - 1) for y in ys]
-        new_ys = list(itertools.chain(*new_ys))
+            # new_ys = [get_proposals(task, x, y, model, step == task.steps - 1) for y in ys]
+            new_ys = get_proposals_batch(task, x, ys, model, 16, step == task.steps - 1)
+        # new_ys = list(itertools.chain(*new_ys))
         ids = list(range(len(new_ys)))
 
         print("Proposals: ", new_ys)
@@ -131,7 +132,7 @@ def solve(args, task, idx, model, to_print=True):
             values = get_votes(task, x, new_ys, args.n_evaluate_sample)
         elif args.method_evaluate == 'value':
             # values = get_values(task, x, new_ys, args.n_evaluate_sample, model_pipeline, step == task.steps - 1)
-            values = get_values_batch(task, x, ys, args.n_evaluate_sample, model, 16, False)
+            values = get_values_batch(task, x, new_ys, args.n_evaluate_sample, model, 16, False)
 
         print("Values: ", values)
 

@@ -66,7 +66,7 @@ def gpt_24_proposal(prompt, model, inputAmount, temperature=0.7, max_tokens=1000
 def llama_propose(model, prompts, batch_size):
     return model.model_pipeline(
         prompts,
-        max_new_tokens = 300,
+        max_new_tokens = 200,
         temperature = 0.7,
         num_return_sequences = 1,
         stopping_criteria = StoppingCriteriaList([model.stopInput]),
