@@ -92,3 +92,12 @@ class Game24Task(Task):
         value_map = {'impossible': 0.001, 'likely': 1, 'sure': 20}  # TODO: ad hoc
         value = sum(value * value_names.count(name) for name, value in value_map.items())
         return value
+
+    @staticmethod
+    def value_outputs_unwrap_nox(y: str, value_outputs: list) -> float:
+        if len(y.strip().split('\n')) == 4 and 'answer' not in y.lower():
+            return 0
+        value_names = [_.split('\n')[-1] for _ in value_outputs]
+        value_map = {'impossible': 0.001, 'likely': 1, 'sure': 20}  # TODO: ad hoc
+        value = sum(value * value_names.count(name) for name, value in value_map.items())
+        return value

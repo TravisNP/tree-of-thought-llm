@@ -4,7 +4,7 @@ import argparse
 import time
 
 from tot.tasks import get_task
-from tot.methods.bfs import solve, naive_solve
+from tot.methods.bfs import solve, naive_solve, solve_together
 from tot.models import gpt_usage, Model
 from transformers import pipeline, AutoTokenizer
 import torch
@@ -29,6 +29,9 @@ def run(args):
         model = Model(model_pipeline, model_id)
     else:
         raise TypeError("Model must be llama")
+
+    solve_together(args, task, model, True)
+    return
 
     if args.naive_run:
         file = f'./logs/{args.task}/{args.backend}_{args.temperature}_naive_{args.prompt_sample}_sample_{args.n_generate_sample}_start{args.task_start_index}_end{args.task_end_index}.json'

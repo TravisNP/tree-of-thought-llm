@@ -4,6 +4,7 @@ from functools import partial
 from tot.models import gpt, gpt_24_proposal, gpt_24_value, llama_values, llama_propose
 from tot.tasks.game24 import get_current_numbers
 from transformers import StoppingCriteriaList, StopStringCriteria
+import time
 
 def get_value(task, x, y, n_evaluate_sample, model, lastStep, cache_value=True):
     value_prompt = task.value_prompt_wrap(x, y, lastStep)
@@ -107,6 +108,42 @@ def get_samples(task, x, y, n_generate_sample, prompt_sample, stop):
         raise ValueError(f'prompt_sample {prompt_sample} not recognized')
     samples = gpt(prompt, n=n_generate_sample, stop=stop)
     return [y + _ for _ in samples]
+
+def solve_together(args, task, model, to_print=False):
+    global gpt
+    gpt = partial(gpt, model=args.backend, temperature=args.temperature)
+    print(gpt)
+    inputs = [task.get_input(i) for i in range(args.task_start_index, args.task_end_index)]
+    # proposal_prompts1 = [task.propose_prompt_wrap(x, '', False) for x in inputs]
+    # start_time = time.time()
+    # proposals1 = llama_propose(model, proposal_prompts1, 256)
+    # end_time = time.time()
+    # print(f"Execution time: {end_time - start_time:.4f} seconds")
+    # formatted_proposals1 = [proposal[0]["generated_text"].split("\n")[12:-1] for proposal in proposals1]
+    # if to_print:
+    #     print(formatted_proposals1)
+
+    # values_prompt1 = [[task.value_prompt_wrap(input, proposal, False) for proposal in proposals] for input, proposals in zip(inputs, formatted_proposals1)]
+    # onelist_values_prompt1 = list(itertools.chain(*values_prompt1))
+    # start_time = time.time()
+    # onelist_values1 = llama_values(model, onelist_values_prompt1, args.n_evaluate_sample, 256)
+    # end_time = time.time()
+    # print(f"Execution time: {end_time - start_time:.4f} seconds")
+
+    # onelist_formatted_values1 = [task.value_outputs_unwrap_nox(step, [resultPrompt["generated_text"] for resultPrompt in valuesForStep]) for valuesForStep, step in zip(onelist_values1, list(itertools.chain(*formatted_proposals1)))]
+
+    formatted_proposals1 = [['1 + 1 = 2 (left: 2 11 11)', '1 + 11 = 12 (left: 1 11 12)', '1 * 1 = 1 (left: 1 1 11)', '1 * 11 = 11 (left: 1 1 11)', '11 / 1 = 11 (left: 1 1 11)', '11 - 1 = 10 (left: 1 1 10)', '11 + 1 = 12 (left: 1 11 12)', '11 - 11 = 0 (left: 1 1 0)', '11 + 11 = 22 (left: 1 1 22)', '1 / 1 = 1 (left: 1 1 11)'], ['3 - 1 = 2 (left: 1 1 2 8)', '8 / 1 = 8 (left: 1 1 3 8)', '8 + 3 = 11 (left: 1 1 11)', '3 + 1 = 4 (left: 1 4 8)', '8 - 3 = 5 (left: 1 1 5)', '8 + 1 = 9 (left: 1 3 9)', '1 * 8 = 8 (left: 1 1 3 8)', '8 * 3 = 24 (left: 1 1 24)', '1 + 3 = 4 (left: 1 4 8)', '1 * 1 = 1 (left: 1 1 3 8)', '8 - 1 = 7 (left: 1 1 3 7)']]
+    onelist_formatted_values1 = [40.001, 60.0, 0.003, 1.002, 1.002, 0.003, 60.0, 0.003, 60.0, 0.003, 20.0, 40.001, 0.003, 21.001, 0.003, 21.001, 1.002, 40.001, 1.002, 2.0, 2.001]
+    length_formatted_proposals1 = [len(sublist) for sublist in formatted_proposals1]
+    formatted_values1 = [onelist_formatted_values1[i:j] for i, j in zip([0] + list(itertools.accumulate(length_formatted_proposals1))[:-1], itertools.accumulate(length_formatted_proposals1))]
+    if to_print:
+        print(formatted_proposals1)
+        print(formatted_values1)
+
+    mult_ids = [list(range(len(new_ys))) for new_ys in formatted_proposals1]
+    mult_select_ids = [sorted(ids, key=lambda x: values[x], reverse=True)[:args.n_select_sample] for ids, values in zip(mult_ids, formatted_values1)]
+    select_new_ys = [[new_ys[select_id] for select_id in select_ids] for new_ys, select_ids in zip(formatted_proposals1, mult_select_ids)]
+    print(select_new_ys)
 
 def solve(args, task, idx, model, to_print=True):
     global gpt
