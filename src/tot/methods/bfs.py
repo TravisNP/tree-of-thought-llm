@@ -1,10 +1,11 @@
 import itertools
 import numpy as np
 from functools import partial
-from tot.models import gpt, gpt_24_proposal, gpt_24_value, llama_values, llama_propose
+from tot.models import gpt, gpt_24_proposal, gpt_24_value, llama_value, llama_propose
 from tot.tasks.game24 import get_current_numbers
 from transformers import StoppingCriteriaList, StopStringCriteria
 import time
+from tot.prompts.game24 import value_prompt
 
 def get_value(task, x, y, n_evaluate_sample, model, lastStep, cache_value=True):
     value_prompt = task.value_prompt_wrap(x, y, lastStep)
@@ -40,7 +41,7 @@ def get_values_batch(task, x, ys, n_evaluate_sample, model, batch_size, lastStep
         goodPrompts = prompts
         goodys = ys
 
-    responses = llama_values(model, goodPrompts, n_evaluate_sample, batch_size)
+    responses = llama_value(model, goodPrompts, n_evaluate_sample, batch_size)
     if toPrint:
         print(responses)
     values = [task.value_outputs_unwrap(x, step, [resultPrompt["generated_text"] for resultPrompt in valuesForStep]) for valuesForStep, step in zip(responses, goodys)]
@@ -109,41 +110,93 @@ def get_samples(task, x, y, n_generate_sample, prompt_sample, stop):
     samples = gpt(prompt, n=n_generate_sample, stop=stop)
     return [y + _ for _ in samples]
 
-def solve_together(args, task, model, to_print=False):
+def solve_together(args, task, model, cache_values=True, to_print=False):
     global gpt
     gpt = partial(gpt, model=args.backend, temperature=args.temperature)
     print(gpt)
+    data_to_save = {}
     inputs = [task.get_input(i) for i in range(args.task_start_index, args.task_end_index)]
-    # proposal_prompts1 = [task.propose_prompt_wrap(x, '', False) for x in inputs]
-    # start_time = time.time()
-    # proposals1 = llama_propose(model, proposal_prompts1, 256)
-    # end_time = time.time()
-    # print(f"Execution time: {end_time - start_time:.4f} seconds")
-    # formatted_proposals1 = [proposal[0]["generated_text"].split("\n")[12:-1] for proposal in proposals1]
-    # if to_print:
-    #     print(formatted_proposals1)
+    all_ys = [[''] for _ in range(len(inputs))]
+    for step in range(task.steps):
+        # Get the proposals
+        old_ys = all_ys
+        if (step == task.steps - 1):
+            proposal_prompts = [
+                [result for result in (
+                        task.propose_prompt_wrap(x, y, step == task.steps - 1)
+                        for y in ys) if result != "BAD"]
+                for x, ys in zip(inputs, all_ys)
+            ]
+        else:
+            proposal_prompts = [[task.propose_prompt_wrap(x, y, step == task.steps - 1) for y in ys] for x, ys in zip(inputs, all_ys)]
+        onelist_proposal_prompts = list(itertools.chain(*proposal_prompts))
 
-    # values_prompt1 = [[task.value_prompt_wrap(input, proposal, False) for proposal in proposals] for input, proposals in zip(inputs, formatted_proposals1)]
-    # onelist_values_prompt1 = list(itertools.chain(*values_prompt1))
-    # start_time = time.time()
-    # onelist_values1 = llama_values(model, onelist_values_prompt1, args.n_evaluate_sample, 256)
-    # end_time = time.time()
-    # print(f"Execution time: {end_time - start_time:.4f} seconds")
+        start_time = time.time()
+        llama_proposals = llama_propose(model, onelist_proposal_prompts, args.batch_size_generate)
+        end_time = time.time()
 
-    # onelist_formatted_values1 = [task.value_outputs_unwrap_nox(step, [resultPrompt["generated_text"] for resultPrompt in valuesForStep]) for valuesForStep, step in zip(onelist_values1, list(itertools.chain(*formatted_proposals1)))]
+        if (step == task.steps - 1):
+            formatted_proposals_nottaskgrouped_prependedsteps = [["\n".join(proposal[0]["generated_text"].split("\n")[33:-1]) + "\n"] for proposal in llama_proposals]
+        else:
+            formatted_proposals_nottaskgrouped = [proposal[0]["generated_text"].split("\n")[12:-1] for proposal in llama_proposals]
+            formatted_proposals_nottaskgrouped_prependedsteps = [[psstep + fsstep + '\n' for fsstep in fssteps] for psstep, fssteps
+                                                                in zip(list(itertools.chain(*all_ys)), formatted_proposals_nottaskgrouped)]
+        len_formatted_proposals_nottaskgrouped_prependedsteps = [len(sublist) for sublist in proposal_prompts]
+        formatted_proposals = [sum(formatted_proposals_nottaskgrouped_prependedsteps[i:j], [])
+                                for i, j in zip([0] + list(itertools.accumulate(len_formatted_proposals_nottaskgrouped_prependedsteps))[:-1], itertools.accumulate(len_formatted_proposals_nottaskgrouped_prependedsteps))]
+        if to_print:
+            print(f"Execution time: {end_time - start_time:.4f} seconds")
+            print(formatted_proposals)
 
-    formatted_proposals1 = [['1 + 1 = 2 (left: 2 11 11)', '1 + 11 = 12 (left: 1 11 12)', '1 * 1 = 1 (left: 1 1 11)', '1 * 11 = 11 (left: 1 1 11)', '11 / 1 = 11 (left: 1 1 11)', '11 - 1 = 10 (left: 1 1 10)', '11 + 1 = 12 (left: 1 11 12)', '11 - 11 = 0 (left: 1 1 0)', '11 + 11 = 22 (left: 1 1 22)', '1 / 1 = 1 (left: 1 1 11)'], ['3 - 1 = 2 (left: 1 1 2 8)', '8 / 1 = 8 (left: 1 1 3 8)', '8 + 3 = 11 (left: 1 1 11)', '3 + 1 = 4 (left: 1 4 8)', '8 - 3 = 5 (left: 1 1 5)', '8 + 1 = 9 (left: 1 3 9)', '1 * 8 = 8 (left: 1 1 3 8)', '8 * 3 = 24 (left: 1 1 24)', '1 + 3 = 4 (left: 1 4 8)', '1 * 1 = 1 (left: 1 1 3 8)', '8 - 1 = 7 (left: 1 1 3 7)']]
-    onelist_formatted_values1 = [40.001, 60.0, 0.003, 1.002, 1.002, 0.003, 60.0, 0.003, 60.0, 0.003, 20.0, 40.001, 0.003, 21.001, 0.003, 21.001, 1.002, 40.001, 1.002, 2.0, 2.001]
-    length_formatted_proposals1 = [len(sublist) for sublist in formatted_proposals1]
-    formatted_values1 = [onelist_formatted_values1[i:j] for i, j in zip([0] + list(itertools.accumulate(length_formatted_proposals1))[:-1], itertools.accumulate(length_formatted_proposals1))]
-    if to_print:
-        print(formatted_proposals1)
-        print(formatted_values1)
+        # Evaluate the proposals
+        if cache_values and step != task.steps - 1:
+            all_current_numbers = [[get_current_numbers(proposal) for proposal in proposals] for proposals in formatted_proposals]
+            all_current_numbers_uniquebytask = [list(set(current_numbers_task)) for current_numbers_task in all_current_numbers]
+            values_prompt = [[value_prompt.format(input=current_numbers) for current_numbers in current_numbers_task] for current_numbers_task in all_current_numbers_uniquebytask]
+            onelist_values_prompt = list(itertools.chain(*values_prompt))
 
-    mult_ids = [list(range(len(new_ys))) for new_ys in formatted_proposals1]
-    mult_select_ids = [sorted(ids, key=lambda x: values[x], reverse=True)[:args.n_select_sample] for ids, values in zip(mult_ids, formatted_values1)]
-    select_new_ys = [[new_ys[select_id] for select_id in select_ids] for new_ys, select_ids in zip(formatted_proposals1, mult_select_ids)]
-    print(select_new_ys)
+            start_time = time.time()
+            llama_values = llama_value(model, onelist_values_prompt, args.n_evaluate_sample, args.batch_size_evaluate)
+            end_time = time.time()
+
+            onelist_formatted_values = [task.value_outputs_unwrap_nox(step, [resultPrompt["generated_text"] for resultPrompt in valuesForStep]) for valuesForStep, step in zip(llama_values, list(itertools.chain(*formatted_proposals)))]
+
+            length_formatted_proposals = [len(sublist) for sublist in values_prompt]
+            formatted_values_unique = [onelist_formatted_values[i:j] for i, j in zip([0] + list(itertools.accumulate(length_formatted_proposals))[:-1], itertools.accumulate(length_formatted_proposals))]
+
+            all_current_numbers_to_value = [dict(zip(current_numbers_task, formatted_values_task)) for current_numbers_task, formatted_values_task in zip(all_current_numbers_uniquebytask, formatted_values_unique)]
+            formatted_values = [[all_current_numbers_task_to_value[current_numbers] for current_numbers in current_numbers_task] for current_numbers_task, all_current_numbers_task_to_value in zip(all_current_numbers, all_current_numbers_to_value)]
+        else:
+            values_prompt = [[task.value_prompt_wrap(input, proposal, step == task.steps - 1) for proposal in proposals] for input, proposals in zip(inputs, formatted_proposals)]
+            onelist_values_prompt = list(itertools.chain(*values_prompt))
+
+            start_time = time.time()
+            llama_values = llama_value(model, onelist_values_prompt, args.n_evaluate_sample, args.batch_size_evaluate)
+            end_time = time.time()
+
+            onelist_formatted_values = [task.value_outputs_unwrap_nox(step, [resultPrompt["generated_text"] for resultPrompt in valuesForStep]) for valuesForStep, step in zip(llama_values, list(itertools.chain(*formatted_proposals)))]
+
+            length_formatted_proposals = [len(sublist) for sublist in formatted_proposals]
+            formatted_values = [onelist_formatted_values[i:j] for i, j in zip([0] + list(itertools.accumulate(length_formatted_proposals))[:-1], itertools.accumulate(length_formatted_proposals))]
+        if to_print:
+            print(f"Execution time: {end_time - start_time:.4f} seconds")
+            print(formatted_values)
+
+        # Select the best proposals
+        mult_ids = [list(range(len(new_ys))) for new_ys in formatted_proposals]
+        mult_select_ids = [sorted(ids, key=lambda x: values[x], reverse=True)[:args.n_select_sample] for ids, values in zip(mult_ids, formatted_values)]
+        all_ys = [[new_ys[select_id] for select_id in select_ids] for new_ys, select_ids in zip(formatted_proposals, mult_select_ids)]
+        print(all_ys)
+
+        for i, x, ys, new_ys, values, select_new_ys in zip(range(args.task_start_index, args.task_end_index), inputs, old_ys, formatted_proposals, formatted_values, all_ys):
+            task_id = "task" + str(i)
+            if step == 0:
+                data_to_save[task_id] = {"steps": [{'step': step, 'x': x, 'ys': ys, 'new_ys': new_ys, 'values': values, 'select_new_ys': select_new_ys}]}
+            else:
+                data_to_save[task_id]["steps"].append({'step': step, 'x': x, 'ys': ys, 'new_ys': new_ys, 'values': values, 'select_new_ys': select_new_ys})
+
+    return all_ys, data_to_save
+
 
 def solve(args, task, idx, model, to_print=True):
     global gpt

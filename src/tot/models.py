@@ -73,7 +73,7 @@ def llama_propose(model, prompts, batch_size):
         batch_size = batch_size
     )
 
-def llama_values(model, prompts, n_evaluate_sample, batch_size):
+def llama_value(model, prompts, n_evaluate_sample, batch_size):
     return model.model_pipeline(
         prompts,
         max_new_tokens = 300, # The model sometimes never stops thinking about a sequence so this can't be too high
