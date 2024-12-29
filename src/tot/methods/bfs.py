@@ -118,8 +118,8 @@ def solve_together(args, task, model, cache_values=True, to_print=False):
     inputs = [task.get_input(i) for i in range(args.task_start_index, args.task_end_index)]
     all_ys = [[''] for _ in range(len(inputs))]
     for step in range(task.steps):
-        # Get the proposals
         old_ys = all_ys
+        # Augment the steps with the prompt and remove previous bad thoughts
         if (step == task.steps - 1):
             proposal_prompts = [
                 [result for result in (
@@ -131,10 +131,12 @@ def solve_together(args, task, model, cache_values=True, to_print=False):
             proposal_prompts = [[task.propose_prompt_wrap(x, y, step == task.steps - 1) for y in ys] for x, ys in zip(inputs, all_ys)]
         onelist_proposal_prompts = list(itertools.chain(*proposal_prompts))
 
+        # Query the model for the proposals
         start_time = time.time()
         llama_proposals = llama_propose(model, onelist_proposal_prompts, args.batch_size_generate)
         end_time = time.time()
 
+        # Extract the proposals and group them by task
         if (step == task.steps - 1):
             formatted_proposals_nottaskgrouped_prependedsteps = [["\n".join(proposal[0]["generated_text"].split("\n")[33:-1]) + "\n"] for proposal in llama_proposals]
         else:
@@ -144,6 +146,12 @@ def solve_together(args, task, model, cache_values=True, to_print=False):
         len_formatted_proposals_nottaskgrouped_prependedsteps = [len(sublist) for sublist in proposal_prompts]
         formatted_proposals = [sum(formatted_proposals_nottaskgrouped_prependedsteps[i:j], [])
                                 for i, j in zip([0] + list(itertools.accumulate(len_formatted_proposals_nottaskgrouped_prependedsteps))[:-1], itertools.accumulate(len_formatted_proposals_nottaskgrouped_prependedsteps))]
+
+        # Prune proposals if leftover amount is wrong
+        if args.prune_bad_proposals and step != task.steps - 1:
+            expected_number_left = 3 - step
+            formatted_proposals = [[proposal for proposal in proposals if len(get_current_numbers(proposal)) != expected_number_left] for proposals in formatted_proposals]
+
         if to_print:
             print(f"Execution time: {end_time - start_time:.4f} seconds")
             print(formatted_proposals)
@@ -155,6 +163,7 @@ def solve_together(args, task, model, cache_values=True, to_print=False):
             values_prompt = [[value_prompt.format(input=current_numbers) for current_numbers in current_numbers_task] for current_numbers_task in all_current_numbers_uniquebytask]
             onelist_values_prompt = list(itertools.chain(*values_prompt))
 
+            # Query the model for an evaluation of the proposals
             start_time = time.time()
             llama_values = llama_value(model, onelist_values_prompt, args.n_evaluate_sample, args.batch_size_evaluate)
             end_time = time.time()
@@ -188,6 +197,7 @@ def solve_together(args, task, model, cache_values=True, to_print=False):
         all_ys = [[new_ys[select_id] for select_id in select_ids] for new_ys, select_ids in zip(formatted_proposals, mult_select_ids)]
         print(all_ys)
 
+        # Save data to output to log file later
         for i, x, ys, new_ys, values, select_new_ys in zip(range(args.task_start_index, args.task_end_index), inputs, old_ys, formatted_proposals, formatted_values, all_ys):
             task_id = "task" + str(i)
             if step == 0:

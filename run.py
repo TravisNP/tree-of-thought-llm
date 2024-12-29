@@ -30,10 +30,10 @@ def run(args):
         tokenizer=tokenizer,
         model_kwargs={"torch_dtype": torch.bfloat16},
         device_map="auto",
-    ) if True else None
+    )
     model = Model(model_pipeline, model_id)
 
-    file = f'./logs/{args.task}/{args.backend}_{args.temperature}_{args.method_generate}{args.n_generate_sample}_{args.method_evaluate}{args.n_evaluate_sample}_{args.method_select}{args.n_select_sample}_start{args.task_start_index}_end{args.task_end_index}_{model_id}.json'
+    file = f'./logs/{args.task}/{args.backend}_{args.temperature}_{args.method_generate}{args.n_generate_sample}_{args.method_evaluate}{args.n_evaluate_sample}_{args.method_select}{args.n_select_sample}_start{args.task_start_index}_end{args.task_end_index}_propbatch{args.batch_size_generate}_valbatch{args.batch_size_evaluate}_{model_id}.json'
     start_time = time.time()
     all_ys, data_to_save = solve_together(args, task, model, True, True)
     end_time = time.time()
@@ -44,7 +44,7 @@ def run(args):
 
     os.makedirs(os.path.dirname(file), exist_ok=True)
     with open(file, 'w') as f:
-            json.dump(data_to_save, f, indent=4)
+        json.dump(data_to_save, f, indent=4)
     return
 
     if args.naive_run:
@@ -100,6 +100,8 @@ def parse_args():
 
     args.add_argument('--batch_size_generate', type=int, default=1)
     args.add_argument('--batch_size_evaluate', type=int, default=1)
+
+    args.add_argument('--prune_bad_proposals', type=bool, default=True)
 
     args = args.parse_args()
     return args

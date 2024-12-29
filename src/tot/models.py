@@ -9,6 +9,7 @@ class Model():
         self.model_id = model_id
         self.stopLikelySureImp = StopStringCriteria(tokenizer=model_pipeline.tokenizer, stop_strings=["likely", "sure", "impossible"])
         self.stopInput = StopStringCriteria(tokenizer=model_pipeline.tokenizer, stop_strings=["Input"])
+        self.numGPUs = torch.cuda.device_count()
 
 class StopOnXInput(transformers.StoppingCriteria):
     def __init__(self, tokenizer, inputAmount):
@@ -64,24 +65,40 @@ def gpt_24_proposal(prompt, model, inputAmount, temperature=0.7, max_tokens=1000
     )
 
 def llama_propose(model, prompts, batch_size):
-    return model.model_pipeline(
-        prompts,
-        max_new_tokens = 200,
-        temperature = 0.7,
-        num_return_sequences = 1,
-        stopping_criteria = StoppingCriteriaList([model.stopInput]),
-        batch_size = batch_size
-    )
+    while batch_size > 0:
+        try:
+            return model.model_pipeline(
+                prompts,
+                max_new_tokens = 200,
+                temperature = 0.7,
+                num_return_sequences = 1,
+                stopping_criteria = StoppingCriteriaList([model.stopInput]),
+                batch_size = batch_size
+            )
+        except torch.OutOfMemoryError as e:
+            batch_size = batch_size - model.numGPUs
+            torch.cuda.empty_cache()
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+            raise e
 
 def llama_value(model, prompts, n_evaluate_sample, batch_size):
-    return model.model_pipeline(
-        prompts,
-        max_new_tokens = 300, # The model sometimes never stops thinking about a sequence so this can't be too high
-        temperature = 0.7,
-        num_return_sequences = n_evaluate_sample,
-        stopping_criteria = StoppingCriteriaList([model.stopLikelySureImp]),
-        batch_size = batch_size
-    )
+    while batch_size > 0:
+        try:
+            return model.model_pipeline(
+                prompts,
+                max_new_tokens = 300, # The model sometimes never stops thinking about a sequence so this can't be too high
+                temperature = 0.7,
+                num_return_sequences = n_evaluate_sample,
+                stopping_criteria = StoppingCriteriaList([model.stopLikelySureImp]),
+                batch_size = batch_size
+            )
+        except torch.OutOfMemoryError as e:
+            batch_size = batch_size - model.numGPUs
+            torch.cuda.empty_cache()
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+            raise e
 
 def gpt_24_value(prompt, model, lastStep, temperature=0.7, max_tokens=1000, n=1):
     return [gpt_24_value_query(prompt, model, lastStep, temperature, max_tokens)[0]["generated_text"] for _ in range(n)]
