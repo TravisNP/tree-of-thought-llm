@@ -147,17 +147,30 @@ def solve_together(args, task, model, cache_values=True, to_print=False):
         formatted_proposals = [sum(formatted_proposals_nottaskgrouped_prependedsteps[i:j], [])
                                 for i, j in zip([0] + list(itertools.accumulate(len_formatted_proposals_nottaskgrouped_prependedsteps))[:-1], itertools.accumulate(len_formatted_proposals_nottaskgrouped_prependedsteps))]
 
-        # Prune proposals if leftover amount is wrong
-        if args.prune_bad_proposals and step != task.steps - 1:
-            expected_number_left = 3 - step
-            formatted_proposals = [[proposal for proposal in proposals if len(get_current_numbers(proposal)) != expected_number_left] for proposals in formatted_proposals]
+        # Pruning to speed up computation time when proposals did not follow rules / bad
+        if args.prune_bad_proposals:
+            # Prune proposals if leftover amount of current numbers is wrong
+            if step != task.steps - 1:
+                expected_number_left = 3 - step
+                formatted_proposals = [[proposal for proposal in proposals if len(get_current_numbers(proposal).split(' ')) == expected_number_left] for proposals in formatted_proposals]
+
+            # Prune proposals if in step before last (one number left) and it is not 24
+            if step == task.steps - 2:
+                formatted_proposals = [[proposal for proposal in proposals if get_current_numbers(proposal) == '24'] for proposals in formatted_proposals]
+
+            # Add default if task is empty
+            formatted_proposals = [proposals if len(proposals) != 0 else ['1 + 1 = 2 (left: 2 1 1)\n1 + 1 = 2 (left: 2 2)'] for proposals in formatted_proposals]
 
         if to_print:
             print(f"Execution time: {end_time - start_time:.4f} seconds")
             print(formatted_proposals)
 
-        # Evaluate the proposals
-        if cache_values and step != task.steps - 1:
+        # Evaluate the proposals on step before last (one number left), if 24 left then rate as sure, if not 24 then rate as impossible
+        if args.quick_last_valuation and step == task.steps - 2:
+            formatted_values = [[20 * args.n_evaluate_sample if get_current_numbers(formatted_proposal_task) == '24' else 0.001 * args.n_evaluate_sample for formatted_proposal_task in formatted_proposals_task] for formatted_proposals_task in formatted_proposals]
+
+        # Evaluate the proposals, only compute the a set of numbers once per task
+        elif cache_values and step != task.steps - 1:
             all_current_numbers = [[get_current_numbers(proposal) for proposal in proposals] for proposals in formatted_proposals]
             all_current_numbers_uniquebytask = [list(set(current_numbers_task)) for current_numbers_task in all_current_numbers]
             values_prompt = [[value_prompt.format(input=current_numbers) for current_numbers in current_numbers_task] for current_numbers_task in all_current_numbers_uniquebytask]
@@ -175,6 +188,7 @@ def solve_together(args, task, model, cache_values=True, to_print=False):
 
             all_current_numbers_to_value = [dict(zip(current_numbers_task, formatted_values_task)) for current_numbers_task, formatted_values_task in zip(all_current_numbers_uniquebytask, formatted_values_unique)]
             formatted_values = [[all_current_numbers_task_to_value[current_numbers] for current_numbers in current_numbers_task] for current_numbers_task, all_current_numbers_task_to_value in zip(all_current_numbers, all_current_numbers_to_value)]
+        # Evaluate the proposals
         else:
             values_prompt = [[task.value_prompt_wrap(input, proposal, step == task.steps - 1) for proposal in proposals] for input, proposals in zip(inputs, formatted_proposals)]
             onelist_values_prompt = list(itertools.chain(*values_prompt))

@@ -102,6 +102,7 @@ def parse_args():
     args.add_argument('--batch_size_evaluate', type=int, default=1)
 
     args.add_argument('--prune_bad_proposals', type=bool, default=True)
+    args.add_argument('--quick_last_valuation', type=bool, default=True)
 
     args = args.parse_args()
     return args

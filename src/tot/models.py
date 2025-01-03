@@ -76,6 +76,8 @@ def llama_propose(model, prompts, batch_size):
                 batch_size = batch_size
             )
         except torch.OutOfMemoryError as e:
+            print(f"Out of memory error occursed: {e}")
+            print(f"Reducing batch size from {batch_size} to {batch_size - model.numGPUs}")
             batch_size = batch_size - model.numGPUs
             torch.cuda.empty_cache()
         except Exception as e:
@@ -94,6 +96,8 @@ def llama_value(model, prompts, n_evaluate_sample, batch_size):
                 batch_size = batch_size
             )
         except torch.OutOfMemoryError as e:
+            print(f"Out of memory error occursed: {e}")
+            print(f"Reducing batch size from {batch_size} to {batch_size - model.numGPUs}")
             batch_size = batch_size - model.numGPUs
             torch.cuda.empty_cache()
         except Exception as e:
